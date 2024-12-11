@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR - نظام بصمة الموظفين</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #2d2d2d;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: #2d2d2d;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        h1, h2 {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+
+        .time {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .date {
+            font-size: 1.2rem;
+            color: #888;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .employee-list {
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 5px;
+            display: none;
+            position: absolute;
+            width: calc(100% - 2rem);
+            z-index: 1000;
+        }
+
+        .employee-list div {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .employee-list div:hover {
+            background: #444;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #444;
+            background: #333;
+            color: #fff;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            border-color: #4CAF50;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .btn-primary, .btn-danger, .btn-success, .export-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover { 
+            background: #1976D2;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger:hover { 
+            background: #D32F2F;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success:hover { 
+            background: #388E3C;
+            transform: translateY(-2px);
+        }
+
+        .top-performers {
+            background: #333;
+            border-radius: 8px;
+            padding: 1rem;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .performer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #444;
+            transition: transform 0.2s ease;
+        }
+
+        .performer-item:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .performer-rank {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .performer-stats {
+            display: flex;
+            gap: 1rem;
+            color: #888;
+        }
+
+        .stats-badge {
+            background: rgba(76, 175, 80, 0.1);
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            color: #4CAF50;
+        }
+
+        .task-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .task-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .task-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .task-progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 0.5rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .time {
+                font-size: 2rem;
+            }
+
+            .task-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .performer-stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 5px;
+            color: white;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateY(-20px);
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .employees-container {
+            position: relative;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>نظام حضور وانصراف الموظفين والمهام</h1>
+        <div class="time" id="current-time"></div>
+        <div class="date" id="current-date"></div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>تسجيل حضور/انصراف</h2>
+            <div class="input-group">
+                <div class="employees-container">
+                    <input type="text" id="employee-name" placeholder="اسم الموظف" oninput="filterEmployees(this.value)">
+                    <div id="employee-list" class="employee-list"></div>
+                </div>
+                <input type="number" id="employee-id" placeholder="رقم الموظف">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-success" onclick="recordAttendance('حضور')">حضور</button>
+                    <button class="btn-danger" onclick="recordAttendance('انصراف')">انصراف</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>إدارة المهام</h2>
+            <div class="input-group">
+                <div class="employees-container">
+                    <input type="text" id="task-employee" placeholder="اسم الموظف" oninput="filterEmployeesForTasks(this.value)">
+                    <div id="task-employee-list" class="employee-list"></div>
+                </div>
+                <input type="text" id="task-description" placeholder="وصف المهمة">
+                <button class="btn-primary" onclick="assignTask()">تعيين مهمة جديدة</button>
+            </div>
+            <div id="tasks-list"></div>
+        </div>
+
+        <div class="card">
+            <h2>أفضل الموظفين</h2>
+            <div id="top-performers"></div>
+        </div>
+
+        <div class="card">
+            <h2>سجل الحركات</h2>
+            <button class="export-btn" onclick="exportToPDF()">PDF تصدير السجل</button>
+            <div class="logs" id="logs-container"></div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // قائمة الموظفين
+        const employees = [
+            { name: "أحمد محمد", id: "1001" },
+            { name: "فاطمة علي", id: "1002" },
+            { name: "محمد أحمد", id: "1003" },
+            { name: "نورة سعد", id: "1004" },
+            { name: "عبدالله خالد", id: "1005" }
+        ];
+
+        let logs = [];
+        let tasks = [];
+        let employeeStats = {};
+
+        // تحديث الوقت والتاريخ
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('ar-SA');
+            document.getElementById('current-date').textContent = now.toLocaleDateString('ar-SA', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // البحث عن الموظفين
+        function filterEmployees(searchText) {
+            const employeeList = document.getElementById('employee-list');
+            const filteredEmployees = employees.filter(emp => 
+                emp.name.includes(searchText) || emp.id.includes(searchText)
+            );
+
+            if (searchText && filteredEmployees.length > 0) {
+                employeeList.style.display = 'block';
+                employeeList.innerHTML = filteredEmployees.map(emp => `
+                    <div onclick="selectEmployee('${emp.name}', '${emp.id}')">
+                        ${emp.name} (${emp.id})
+                    </div>
+                `).join('');
+            } else {
+                employeeList.style.display = 'none';
+            }
+        }
+
+        function filterEmployeesForTasks(searchText) {
+            const employeeList = document.getElementById('task-employee-list');
+            const filteredEmployees = employees.filter(emp => 
+                emp.name.includes(searchText) || emp.id.includes(searchText)
+            );
+
+            if (searchText && filteredEmployees.length > 0) {
+                employeeList.style.display = 'block';
+                employeeList.innerHTML = filteredEmployees.map(emp => `
+                    <div onclick="selectTaskEmployee('${emp.name}')">
+                        ${emp.name} (${emp.id})
+                    </div>
+                `).join('');
+            } else {
+                employeeList.style.display = 'none';
+            }
+        }
+
+        function selectEmployee(name, id) {
+            document.getElementById('employee-name').value = name;
+            document.getElementById('employee-id').value = id;
+            document.getElementById('employee-list').style.display = 'none';
+        }
+
+        function selectTaskEmployee(name) {
+            document.getElementById('task-employee').value = name;
+            document.getElementById('task-employee-list').style.display = 'none';
+        }
+
+        // تسجيل الحضور والانصراف
+        function recordAttendance(type) {
+            const name = document.getElementById('employee-name').value.trim();
+            const id = document.getElementById('employee-id').value.trim();
+            
+            if (!name || !id) {
+                showNotification('يرجى تعبئة جميع الحقول', 'error');
+                return;
+            }
+
+            const log = {
+                name,
+                id,
+                type,
+                time: new Date().toLocaleTimeString('ar-SA'),
+                date: new Date().toLocaleDateString('ar-SA')
+            };
+
+            logs.unshift(log);
+            updateLogs();
+            updateEmployeeStats(name, 'attendance');
+            showNotification(`تم تسجيل ${type} بنجاح`, 'success');
+            
+            document.getElementById('employee-name').value = '';
+            document.getElementById('employee-id').value = '';
+        }
+
+        function updateLogs() {
+            const container = document.getElementById('logs-container');
+            container.innerHTML = logs.map(log => `
+                <div class="log-item">
+                    <span>${log.name} (${log.id})</span>
+                    <span>${log.type}</span>
+                    <span>${log.time}</span>
+                    <span>${log.date}</span>
+                </div>
+            `).join('');
+        }
+
+        // إدارة المهام
+        function assignTask() {
+            const employee = document.getElementById('task-employee').value.trim();
+            const description = document.getElementById('task-description').value.trim();
+
+            if (!employee || !description) {
+                showNotification('يرجى تعبئة جميع الحقول', 'error');
+                return;
+            }
+
+            const task = {
+                id: Date.now(),
+                employee,
+                description,
+                status: 'pending',
+                progress: 0,
+                assignedDate: new Date().toLocaleDateString('ar-SA'),
+                lastUpdate: new Date().toLocaleTimeString('ar-SA')
+            };
+
+            tasks.unshift(task);
+            updateTasksList();
+            updateEmployeeStats(employee, 'task');
+            showNotification('تم تعيين المهمة بنجاح', 'success');
+
+            document.getElementById('task-employee').value = '';
+            document.getElementById('task-description').value = '';
+        }
+
+        function updateTaskStatus(taskId, newStatus) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = newStatus;
+                task.lastUpdate = new Date().toLocaleTimeString('ar-SA');
+                
+                switch(newStatus) {
+                    case 'pending':
+                        task.progress = 0;
+                        break;
+                    case 'in-progress':
+                        task.progress = 50;
+                        break;
+                    case 'completed':
+                        task.progress = 100;
+                        updateEmployeeStats(task.employee, 'completedTask');
+                        break;
+                }
+                
+                updateTasksList();
+                showNotification(`تم تحديث حالة المهمة إلى ${getStatusText(newStatus)}`, 'success');
+            }
+        }
+
+        function updateTasksList() {
+            const tasksList = document.getElementById('tasks-list');
+            tasksList.innerHTML = tasks.map(task => `
+                <div class="task-card">
+                    <div class="task-info">
+                        <div>
+                            <h3>${task.employee}</h3>
+                            <small>تم التعيين: ${task.assignedDate}</small>
+                            <small>آخر تحديث: ${task.lastUpdate}</small>
+                        </div>
+                        <span class="task-status status-${task.status}">
+                            ${getStatusText(task.status)}
+                        </span>
+                    </div>
+                    <p>${task.description}</p>
+                    <div class="task-progress">
+                        <div class="task-progress-bar" style="width: ${task.progress}%"></div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="btn-primary" 
+                            onclick="updateTaskStatus(${task.id}, 'pending')"
+                            ${task.status === 'pending' ? 'disabled' : ''}>
+                            قيد الانتظار
+                        </button>
+                        <button class="btn-primary" 
+                            onclick="updateTaskStatus(${task.id}, 'in-progress')"
+                            ${task.status === 'in-progress' ? 'disabled' : ''}>
+                            جاري العمل
+                        </button>
+                        <button class="btn-success" 
+                            onclick="updateTaskStatus(${task.id}, 'completed')"
+                            ${task.status === 'completed' ? 'disabled' : ''}>
+                            تم الإنجاز
+                        </button>
+                        <button class="btn-danger" onclick="deleteTask(${task.id})">
+                            حذف
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteTask(taskId) {
+            if (confirm('هل أنت متأكد من حذف هذه المهمة؟')) {
+                tasks = tasks.filter(t => t.id !== taskId);
+                updateTasksList();
+                showNotification('تم حذف المهمة بنجاح', 'success');
+            }
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'pending': return 'قيد الانتظار';
+                case 'in-progress': return 'جاري العمل';
+                case 'completed': return 'تم الإنجاز';
+                default: return status;
+            }
+        }
+
+        // إدارة إحصائيات الموظفين
+        function updateEmployeeStats(employeeName, actionType) {
+            if (!employeeStats[employeeName]) {
+                employeeStats[employeeName] = {
+                    attendance: 0,
+                    tasks: 0,
+                    completedTasks: 0,
+                    lastUpdate: new Date()
+                };
+            }
+            
+            employeeStats[employeeName].lastUpdate = new Date();
+            
+            if (actionType === 'attendance') {
+                employeeStats[employeeName].attendance++;
+            } else if (actionType === 'task') {
+                employeeStats[employeeName].tasks++;
+            } else if (actionType === 'completedTask') {
+                employeeStats[employeeName].completedTasks++;
+            }
+            
+            updateTopPerformers();
+        }
+
+        function updateTopPerformers() {
+            const performers = Object.entries(employeeStats)
+                .map(([name, stats]) => ({
+                    name,
+                    score: (stats.attendance * 2) + (stats.completedTasks * 3),
+                    stats
+                }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5);
+
+            const container = document.getElementById('top-performers');
+            container.innerHTML = performers.map((performer, index) => `
+                <div class="performer-item">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span class="performer-rank">${index + 1}</span>
+                        <div>
+                            <h3>${performer.name}</h3>
+                            <small>آخر نشاط: ${performer.stats.lastUpdate.toLocaleTimeString('ar-SA')}</small>
+                        </div>
+                    </div>
+                    <div class="performer-stats">
+                        <span class="stats-badge">
+                            ${performer.stats.attendance} حضور
+                        </span>
+                        <span class="stats-badge">
+                            ${performer.stats.completedTasks}/${performer.stats.tasks} مهام
+                        </span>
+                        <span class="stats-badge">
+                            ${performer.score} نقطة
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // تصدير التقارير
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            doc.setFont("Arial", "normal");
+            doc.setR2L(true);
+            doc.setFontSize(20);
+            doc.text('سجل حركات الموظفين', 105, 20, 'center');
+            
+            doc.setFontSize(12);
+            doc.text(`تاريخ التصدير: ${new Date().toLocaleDateString('ar-SA')}`, 105, 30, 'center');
+            
+            let yPos = 40;
+            logs.forEach((log, index) => {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.text(`${log.name} (${log.id})`, 190, yPos, 'right');
+                doc.text(`${log.type} - ${log.time}`, 100, yPos);
+                doc.text(log.date, 50, yPos);
+                yPos += 10;
+            });
+            
+            doc.save('سجل_الحركات.pdf');
+            showNotification('تم تصدير السجل بنجاح', 'success');
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+
+        // تحديث تلقائي
+        setInterval(() => {
+            updateDateTime();
+            updateTopPerformers();
+        }, 1000);
+
+        // التهيئة الأولية
+        updateDateTime();
+        updateTopPerformers();
+
+        // إغلاق قوائم الموظفين عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            if (!e.target.matches('#employee-name') && !e.target.matches('#task-employee')) {
+                document.getElementById('employee-list').style.display = 'none';
+                document.getElementById('task-employee-list').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
